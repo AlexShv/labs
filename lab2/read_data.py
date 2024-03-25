@@ -32,4 +32,4 @@ def read_files_to_dataframe(directory_path, output_file_path):
     return dataframe
 
 
-read_files_to_dataframe('vhi_regions_data', 'data.csv')
+read_files_to_dataframe('vhi_regions_data', '../lab3/data.csv')

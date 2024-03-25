@@ -46,7 +46,7 @@ def find_moderate_drought_years(dataframe, threshold_percentage):
     return mod_drought_years
 
 
-df = pd.read_csv('data.csv')
+df = pd.read_csv('../lab3/data.csv')
 
 for i in range(1, 26):
     min_vhi, max_vhi = find_extremes_for_region(df, region=i, year=1982)

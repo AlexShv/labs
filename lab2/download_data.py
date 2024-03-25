@@ -18,7 +18,7 @@ def download_vhi(region_index):
     # Для кожної області визначаю правильний індекс
     corrected_index = corrected_indices.get(region_index)
 
-    url = f'https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/get_TS_admin.php?country=UKR&provinceID={region_index}&year1=1981&year2=2020&type=Mean'
+    url = f'https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/get_TS_admin.php?country=UKR&provinceID={region_index}&year1=1981&year2=2025&type=Mean'
 
     try:
         # Відкриваємо url та зчитуємо вміст
