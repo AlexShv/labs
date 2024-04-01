@@ -143,11 +143,10 @@ class App(server.App):
             return pd.DataFrame({'Error': ['Значення для Start\\End week повинні бути <= 52']})
 
         data = df[df['Region_Index'] == region]
+        # Для кожного року у вказаному діапазоні потрібно взяти відповідний інтревал тижнів, який було зазначено
         data = data[
-            ((data['Year'] == start_year) & (data['Week'] >= start_week) & (data['Year'] < end_year)) |
-            ((data['Year'] == end_year) & (data['Week'] <= end_week) & (data['Year'] > start_year)) |
-            ((data['Year'] == start_year) & (data['Year'] == end_year) & (data['Week'].between(start_week, end_week)))
-            ]
+            (data['Week'].between(start_week, end_week)) & (data['Year'].between(start_year, end_year))
+        ]
 
         columns = ['Year', 'Week', params['ticker'], 'Region_Index']
         data = data.loc[:, columns].copy()
