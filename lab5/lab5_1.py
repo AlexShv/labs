@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, CheckButtons
+from scipy.signal import butter, filtfilt
 import numpy as np
 
 # Початкові параметри
@@ -12,7 +13,7 @@ default_noise_amplitude = 0.1
 time_values = np.arange(0.0, 1.0, 0.001)
 noisy_values = np.random.normal(default_noise_mean, default_noise_amplitude, len(time_values))
 
-# Збереження попередніх значень для порівняння
+# Збереження попередніх значень для порівнянням
 prev_amplitude = default_amplitude
 prev_frequency = default_frequency
 prev_phase = default_phase
@@ -27,6 +28,14 @@ def harmonic_with_noise(t, amplitude, frequency, phase, show_noise):
     return noisy_signal
 
 
+def butterworth_filter(signal, cutoff_frequency, fs, order=5):
+    nyquist = 0.5 * fs
+    normal_cutoff = cutoff_frequency / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    filtered_signal = filtfilt(b, a, signal)
+    return filtered_signal
+
+
 # Створення основного вікна
 fig, ax = plt.subplots(figsize=(10, 8))
 plt.subplots_adjust(left=0.1, bottom=0.4)
@@ -35,7 +44,7 @@ s = harmonic_with_noise(
     time_values, default_amplitude, default_frequency, default_phase, True
 )
 l, = plt.plot(time_values, s, lw=2)
-
+l_filt, = plt.plot(time_values, s, lw=2)  # Ініціалізація графіка для відфільтрованої гармоніки
 
 instructions = '''
 Інструкції щодо користуванням програмою:
@@ -64,9 +73,8 @@ noise_amplitude_slider = Slider(ax_noise_amplitude, 'Noise Amplitude', 0.0, 1.0,
 
 
 # Функція оновлення графіку
-def update(val):
-    global prev_amplitude, prev_frequency, prev_phase, prev_noise_mean, previous_noise_amplitude
-
+def update(val=None):
+    global prev_noise_mean, previous_noise_amplitude
     amplitude = amplitude_slider.val
     frequency = frequency_slider.val
     phase = phase_slider.val
@@ -75,32 +83,27 @@ def update(val):
 
     show_noise = check_show_noise.get_status()[0]
 
-    # Перевірка зміни параметрів гармоніки
-    if (amplitude != prev_amplitude) or (frequency != prev_frequency) or (phase != prev_phase):
-        y = harmonic_with_noise(time_values, amplitude, frequency, phase, show_noise)
-        l.set_ydata(y)
-        prev_amplitude = amplitude
-        prev_frequency = frequency
-        prev_phase = phase
-
-    # Перевірка зміни параметрів шуму
-    if (noise_mean != prev_noise_mean) or (noise_amplitude != previous_noise_amplitude):
+    # Оновлюємо noisy_values з урахуванням нових параметрів шуму, якщо вони змінилися
+    if noise_mean != prev_noise_mean or noise_amplitude != previous_noise_amplitude:
         global noisy_values
         noisy_values = np.random.normal(noise_mean, noise_amplitude, len(time_values))
-        y = harmonic_with_noise(time_values, amplitude, frequency, phase, show_noise)
-        l.set_ydata(y)
-        prev_noise_mean = noise_mean
-        previous_noise_amplitude = noise_amplitude
+
+    # Оновлюємо графік з урахуванням стану чекбокса
+    y = harmonic_with_noise(time_values, amplitude, frequency, phase, show_noise)
+    l.set_ydata(y)
+
+    # Фільтруємо сигнал
+    cutoff_frequency = cutoff_frequency_slider.val
+    fs = 1000  # Частота дискретизації
+    filtered_signal = butterworth_filter(y, cutoff_frequency, fs)
+    l_filt.set_ydata(filtered_signal)
 
     fig.canvas.draw_idle()
     ax.set_ylim(-amplitude * 1.5, amplitude * 1.5)
 
-
-amplitude_slider.on_changed(update)
-frequency_slider.on_changed(update)
-phase_slider.on_changed(update)
-noise_mean_slider.on_changed(update)
-noise_amplitude_slider.on_changed(update)
+    # Переміщуємо глобальну декларацію після використання змінних
+    prev_noise_mean = noise_mean
+    previous_noise_amplitude = noise_amplitude
 
 
 # Функція для кнопки "Reset"
@@ -112,14 +115,32 @@ def reset(event):
     noise_amplitude_slider.reset()
 
 
+# Функція для оновлення графіку при зміні стану чекбоксу
+def update_show_noise(label):
+    update()
+
+
+# Пов'язання функції з обробником подій чекбоксу
+rax = plt.axes((0.9, 0.45, 0.1, 0.15), facecolor='yellow')
+check_show_noise = CheckButtons(rax, ['Show Noise'], [True])
+check_show_noise.on_clicked(update_show_noise)
+
+amplitude_slider.on_changed(update)
+frequency_slider.on_changed(update)
+phase_slider.on_changed(update)
+noise_mean_slider.on_changed(update)
+noise_amplitude_slider.on_changed(update)
+
 ax_reset = plt.axes((0.8, 0.025, 0.1, 0.04))
 button_reset = Button(ax_reset, 'Reset')
 button_reset.on_clicked(reset)
 
+# Створення слайдера для вибору частоти відсічки фільтра Баттерворта
+ax_cutoff_frequency = plt.axes((0.1, 0.3, 0.65, 0.03))
+cutoff_frequency_slider = Slider(ax_cutoff_frequency, 'Cutoff Frequency', 0.1, 10.0, valinit=1.0)
+cutoff_frequency_slider.on_changed(update)
 
-# Додавання чекбоксу
-rax = plt.axes((0.9, 0.45, 0.1, 0.15), facecolor='yellow')
-check_show_noise = CheckButtons(rax, ['Show Noise'], [True])
-check_show_noise.on_clicked(update)
+ax.grid(True)
 
+plt.legend()
 plt.show()
